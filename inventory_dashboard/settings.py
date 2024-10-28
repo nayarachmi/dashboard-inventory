@@ -26,7 +26,7 @@ SECRET_KEY = 'django-insecure-mz58%g@_#8r-c0ih8#-+c(^e&fl-#gbf)!$)f)@!ydypbt+u4$
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['.railway.app']
+ALLOWED_HOSTS = ['"localhost", "127.0.0.1", "nafal-dashboard-production.up.railway.app"']
 
 
 # Application definition
