@@ -1,6 +1,7 @@
 # inventory/models.py
 from django.db import models
 from django.utils import timezone
+from django.core.validators import FileExtensionValidator
 
 class Owner(models.Model):
     name = models.CharField(max_length=100)
@@ -18,7 +19,7 @@ class Customer(models.Model):
     ktp_address = models.TextField(default='Alamat KTP belum diisi')
     shipping_address = models.TextField(default='Alamat Pengiriman belum diisi')
     maps_link = models.URLField(default='https://example.com')
-    transfer_receipt = models.ImageField(upload_to='receipts/', null=True, blank=True)
+    transfer_receipt = models.FileField(upload_to='receipts/', validators=[FileExtensionValidator(allowed_extensions=['pdf', 'jpg', 'jpeg', 'png'])])
     refund_account_number = models.CharField(max_length=50, null=True, blank=True)
 
     def __str__(self):

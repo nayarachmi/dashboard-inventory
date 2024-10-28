@@ -3,6 +3,10 @@ from django.shortcuts import get_object_or_404, render, redirect
 from .models import Equipment, Owner, Customer, Rental
 from .forms import EquipmentForm, OwnerForm, CustomerForm, RentalForm
 from django.utils import timezone
+from datetime import timedelta
+from django.utils import timezone
+from django.utils import timezone
+from datetime import timedelta
 
 
 # Dashboard view
@@ -13,26 +17,40 @@ def dashboard_view(request):
     equipment_list = Equipment.objects.all()
     current_rentals = Rental.objects.filter(end_date__isnull=True)
     today = timezone.now().date()
-    five_days_from_now = today + timezone.timedelta(days=5)
-    three_days_from_now = today + timezone.timedelta(days=3)
-
-    rentals_ending_5_days = Rental.objects.filter(end_date=today + timezone.timedelta(days=5))
-    rentals_ending_3_days = Rental.objects.filter(end_date=today + timezone.timedelta(days=3))
-    rentals_ending_today = Rental.objects.filter(end_date=today)
+    five_days_ago = today + timedelta(days=5)
+    three_days_ago = today + timedelta(days=3)
     
-    context = {
-        'rentals_ending_5_days': rentals_ending_5_days,
-        'rentals_ending_3_days': rentals_ending_3_days,
-        'rentals_ending_today': rentals_ending_today,
-    }
+    query = request.GET.get('search', '')  # Ambil parameter search dari URL
+
+    if query:
+        equipment_list = equipment_list.filter(name__icontains=query)  # Sesuaikan field
+        customer_list = customer_list.filter(name__icontains=query)    # Sesuaikan field
+        rental_list = rental_list.filter(equipment__name__icontains=query)  # Sesuaikan field
+
+
+    # Mengambil data rental yang akan jatuh tempo
+    rentals_ending_today = Rental.objects.filter(end_date=today)
+    rentals_ending_3_days = Rental.objects.filter(end_date__gte=today, end_date__lte=three_days_ago).exclude(end_date=today)
+    rentals_ending_5_days = Rental.objects.filter(end_date__gte=three_days_ago, end_date__lte=five_days_ago).exclude(end_date__in=[today, three_days_ago])
+
+    # Menangani filter status
+    status = request.GET.get('status', '')
+    if status:
+        equipment_list = Equipment.objects.filter(position=status)
+    else:
+        equipment_list = Equipment.objects.all()
+
 
     return render(request, 'inventory/dashboard.html', {
         'equipment_list': equipment_list,
         'customer_list': customer_list,
         'rental_list': rental_list,
+        'rentals_ending_today': rentals_ending_today,
+        'rentals_ending_3_days': rentals_ending_3_days,
+        'rentals_ending_5_days': rentals_ending_5_days,
+        'status': status,
+        'search_query': query,
     })
-
-    
 
 # View for adding new equipment
 def add_equipment_view(request):
@@ -72,8 +90,6 @@ def equipment_detail_view(request, pk):
     equipment = Equipment.objects.get(pk=pk)
     return render(request, 'inventory/equipment_detail.html', {'equipment': equipment})
 
-# inventory/views.py
-# Example in views.py
 def edit_equipment(request, id):
     equipment = get_object_or_404(Equipment, id=id)
     if request.method == 'POST':
@@ -203,10 +219,7 @@ def customer_list(request):
     customers = Customer.objects.all()
     return render(request, 'inventory/customer_list.html', {'customers': customers})
 
-# views.py
-from django.shortcuts import render, get_object_or_404
-from django.utils import timezone
-from .models import Equipment, Rental
+
 
 def equipment_detail_view(request, pk):
     # Get the equipment object or return a 404 error if not found
@@ -231,23 +244,31 @@ def equipment_detail_view(request, pk):
     
     return render(request, 'inventory/equipment_detail.html', context)
 
-
-
 def inventory_dashboard(request):
-    # Get filter parameter
+    today = timezone.now().date()
+    five_days_ago = today - timedelta(days=5)
+    three_days_ago = today - timedelta(days=3)
+
+    # Mengambil data rental yang akan jatuh tempo
+    rentals_ending_today = Rental.objects.filter(end_date=today)
+    rentals_ending_3_days = Rental.objects.filter(end_date__gte=today, end_date__lte=three_days_ago).exclude(end_date=today)
+    rentals_ending_5_days = Rental.objects.filter(end_date__gte=three_days_ago, end_date__lte=five_days_ago).exclude(end_date__in=[today, three_days_ago])
+
+    # Menangani filter status
     status = request.GET.get('status', '')
-    
-    # Base queryset
-    equipment_list = Equipment.objects.all()
-    
-    # Apply filter if status is selected
     if status:
-        equipment_list = equipment_list.filter(position=status)
-    
+        equipment_list = Equipment.objects.filter(position=status)
+    else:
+        equipment_list = Equipment.objects.all()
+
     context = {
         'equipment_list': equipment_list,
-        'status': status,  # Pass selected status to maintain filter state
-        # ... other context data stays the same
+        'rentals_ending_today': rentals_ending_today,
+        'rentals_ending_3_days': rentals_ending_3_days,
+        'rentals_ending_5_days': rentals_ending_5_days,
+        'status': status,
     }
-    
-    return render(request, 'inventory_dashboard.html', context)
+
+    return render(request, 'inventory/dashboard.html', context)
+
+

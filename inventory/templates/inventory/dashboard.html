@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+    
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -143,11 +144,79 @@
         }
     </style>
 </head>
+
+
 <body>
     <header>
         <h1>Inventory Dashboard</h1>
     </header>
 
+    <form method="GET" action="{% url 'inventory_dashboard' %}" class="search-form">
+        <div class="search-container">
+            <input 
+                type="text" 
+                name="search" 
+                placeholder="Search across equipment, customers, and rentals" 
+                value="{{ search_query }}" 
+                class="search-input"
+            />
+            <button type="submit" class="search-button">
+                🔍
+            </button>
+        </div>
+    </form>
+    
+    <style>
+        /* Style container for search form */
+        .search-form {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+            padding: 10px;
+        }
+    
+        /* Style container for input and button */
+        .search-container {
+            display: flex;
+            align-items: center;
+            background-color: #f2f2f2;
+            border-radius: 25px;
+            padding: 5px 10px;
+            box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
+            max-width: 400px;
+            width: 100%;
+        }
+    
+        /* Style search input */
+        .search-input {
+            border: none;
+            background: transparent;
+            outline: none;
+            padding: 8px 10px;
+            width: 100%;
+            font-size: 16px;
+            color: #333;
+        }
+    
+        /* Style search button */
+        .search-button {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 18px;
+            color: #333;
+        }
+    
+        .search-button:hover {
+            color: #007bff; /* Optional: change color on hover */
+        }
+    
+        /* Style focus for search input */
+        .search-input:focus {
+            color: #000;
+        }
+    </style>
+    
     <main>
         <div class="navbar">
             <a href="{% url 'add_equipment' %}">Add Equipment</a> |
@@ -158,6 +227,7 @@
         <!-- Equipment List Section -->
         <h2>Equipment List</h2>
         <!-- Filter Form -->
+<!-- Form Filter -->
 <form method="GET" action="{% url 'inventory_dashboard' %}" style="margin-bottom: 20px;">
     <label for="status">Filter by Status:</label>
     <select name="status" id="status">
@@ -202,61 +272,6 @@
     </tbody>
 </table>
 
-        <!-- New Rental Alerts Section -->
-        <div class="rental-alerts">
-            <div class="alert-card">
-                <h3>Due Today</h3>
-                <div class="alert-count">{{ rentals_ending_today.count }}</div>
-                <a href="#today-rentals" class="alert-button danger">View Returns Due Today</a>
-            </div>
-            <div class="alert-card">
-                <h3>Due in 3 Days</h3>
-                <div class="alert-count">{{ rentals_ending_3_days.count }}</div>
-                <a href="#h3-rentals" class="alert-button warning">View Returns Due in 3 Days</a>
-            </div>
-            <div class="alert-card">
-                <h3>Due in 5 Days</h3>
-                <div class="alert-count">{{ rentals_ending_5_days.count }}</div>
-                <a href="#h5-rentals" class="alert-button info">View Returns Due in 5 Days</a>
-            </div>
-        </div>
-
-        <!-- Equipment List Section -->
-        <h2>Equipment List</h2>
-        <table>
-            <thead>
-                <tr>
-                    <th>No</th>
-                    <th>Inventory Code</th>
-                    <th>Brand</th>
-                    <th>Position</th>
-                    <th>Customer</th>
-                    <th>Actions</th>
-                    <th>Details</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for equipment in equipment_list %}
-                    <tr>
-                        <td>{{ forloop.counter }}</td>
-                        <td>{{ equipment.inventory_code }}</td>
-                        <td>{{ equipment.brand }}</td>
-                        <td>{{ equipment.get_position_display }}</td>
-                        <td>{{ equipment.customer.name }}</td>
-                        <td class="action-links">
-                            <a href="{% url 'edit_equipment' equipment.id %}">Edit</a>
-                            <a href="{% url 'delete_equipment' equipment.id %}" class="delete">Delete</a>
-                        </td>
-                        <td><a href="{% url 'equipment_detail' equipment.id %}">View Details</a></td>
-                    </tr>
-                {% empty %}
-                    <tr>
-                        <td colspan="7" class="empty-message">No equipment available.</td>
-                    </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-
         <!-- Customer Database -->
         <h2>Customer Database</h2>
         <table>
@@ -267,11 +282,9 @@
                     <th>Email</th>
                     <th>Phone</th>
                     <th>WhatsApp</th>
-                    <th>KTP Address</th>
                     <th>Shipping Address</th>
                     <th>Maps Link</th>
                     <th>Transfer Receipt</th>
-                    <th>Refund Account</th>
                     <th>Actions</th>
                     <th>Details</th>
                 </tr>
@@ -284,7 +297,6 @@
                         <td>{{ customer.email }}</td>
                         <td>{{ customer.phone_number }}</td>
                         <td>{{ customer.whatsapp_number }}</td>
-                        <td>{{ customer.ktp_address }}</td>
                         <td>{{ customer.shipping_address }}</td>
                         <td><a href="{{ customer.maps_link }}" target="_blank">View on Maps</a></td>
                         <td>
@@ -294,7 +306,6 @@
                                 N/A
                             {% endif %}
                         </td>
-                        <td>{{ customer.refund_account_number }}</td>
                         <td class="action-links">
                             <a href="{% url 'edit_customer' customer.id %}">Edit</a>
                             <a href="{% url 'delete_customer' customer.id %}" class="delete">Delete</a>
@@ -304,120 +315,6 @@
                 {% empty %}
                     <tr>
                         <td colspan="12" class="empty-message">No customers available.</td>
-                    </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-
-        <!-- Due Today Rentals -->
-        <h2 id="today-rentals">Returns Due Today</h2>
-        <table>
-            <thead>
-                <tr>
-                    <th>No</th>
-                    <th>Customer</th>
-                    <th>Equipment</th>
-                    <th>Start Date</th>
-                    <th>End Date</th>
-                    <th>Duration (Months)</th>
-                    <th>Total Price</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for rental in rentals_ending_today %}
-                    <tr>
-                        <td>{{ forloop.counter }}</td>
-                        <td>{{ rental.customer.name }}</td>
-                        <td>{{ rental.equipment.inventory_code }}</td>
-                        <td>{{ rental.start_date }}</td>
-                        <td>{{ rental.end_date }}</td>
-                        <td>{{ rental.rental_duration }}</td>
-                        <td>{{ rental.total_price }}</td>
-                        <td class="action-links">
-                            <a href="{% url 'edit_rental' rental.id %}">Edit</a>
-                            <a href="{% url 'delete_rental' rental.id %}" class="delete">Delete</a>
-                        </td>
-                    </tr>
-                {% empty %}
-                    <tr>
-                        <td colspan="8" class="empty-message">No rentals due today.</td>
-                    </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-
-        <!-- Due in 3 Days Rentals -->
-        <h2 id="h3-rentals">Returns Due in 3 Days</h2>
-        <table>
-            <thead>
-                <tr>
-                    <th>No</th>
-                    <th>Customer</th>
-                    <th>Equipment</th>
-                    <th>Start Date</th>
-                    <th>End Date</th>
-                    <th>Duration (Months)</th>
-                    <th>Total Price</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for rental in rentals_ending_3_days %}
-                    <tr>
-                        <td>{{ forloop.counter }}</td>
-                        <td>{{ rental.customer.name }}</td>
-                        <td>{{ rental.equipment.inventory_code }}</td>
-                        <td>{{ rental.start_date }}</td>
-                        <td>{{ rental.end_date }}</td>
-                        <td>{{ rental.rental_duration }}</td>
-                        <td>{{ rental.total_price }}</td>
-                        <td class="action-links">
-                            <a href="{% url 'edit_rental' rental.id %}">Edit</a>
-                            <a href="{% url 'delete_rental' rental.id %}" class="delete">Delete</a>
-                        </td>
-                    </tr>
-                {% empty %}
-                    <tr>
-                        <td colspan="8" class="empty-message">No rentals due in 3 days.</td>
-                    </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-
-        <!-- Due in 5 Days Rentals -->
-        <h2 id="h5-rentals">Returns Due in 5 Days</h2>
-        <table>
-            <thead>
-                <tr>
-                    <th>No</th>
-                    <th>Customer</th>
-                    <th>Equipment</th>
-                    <th>Start Date</th>
-                    <th>End Date</th>
-                    <th>Duration (Months)</th>
-                    <th>Total Price</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for rental in rentals_ending_5_days %}
-                    <tr>
-                        <td>{{ forloop.counter }}</td>
-                        <td>{{ rental.customer.name }}</td>
-                        <td>{{ rental.equipment.inventory_code }}</td>
-                        <td>{{ rental.start_date }}</td>
-                        <td>{{ rental.end_date }}</td>
-                        <td>{{ rental.rental_duration }}</td>
-                        <td>{{ rental.total_price }}</td>
-                        <td class="action-links">
-                            <a href="{% url 'edit_rental' rental.id %}">Edit</a>
-                            <a href="{% url 'delete_rental' rental.id %}" class="delete">Delete</a>
-                        </td>
-                    </tr>
-                {% empty %}
-                    <tr>
-                        <td colspan="8" class="empty-message">No rentals due in 5 days.</td>
                     </tr>
                 {% endfor %}
             </tbody>
@@ -460,6 +357,149 @@
                 {% endfor %}
             </tbody>
         </table>
+
+        <!-- New Rental Alerts Section -->
+        <div class="rental-alerts">
+            <div class="alert-card">
+                <h3>Due Today</h3>
+                <div class="alert-count">{{ rentals_ending_today.count }}</div>
+                <a href="#today-rentals" class="alert-button danger">View Returns Due Today</a>
+            </div>
+            <div class="alert-card">
+                <h3>Due in 3 Days</h3>
+                <div class="alert-count">{{ rentals_ending_3_days.count }}</div>
+                <a href="#h3-rentals" class="alert-button warning">View Returns Due in 3 Days</a>
+            </div>
+            <div class="alert-card">
+                <h3>Due in 5 Days</h3>
+                <div class="alert-count">{{ rentals_ending_5_days.count }}</div>
+                <a href="#h5-rentals" class="alert-button info">View Returns Due in 5 Days</a>
+            </div>
+        </div>
+
+
+<!-- Due Today Rentals -->
+<h2 id="today-rentals">Returns Due Today</h2>
+<table>
+    <tbody>
+            <tr>
+                <tr>
+                    <th>No</th>
+                    <th>Customer</th>
+                    <th>Equipment</th>
+                    <th>Start Date</th>
+                    <th>End Date</th>
+                    <th>Duration (Months)</th>
+                    <th>Total Price</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for rental in rentals_ending_today %}
+                    <tr>
+                        <td>{{ forloop.counter }}</td>
+                        <td>{{ rental.customer.name }}</td>
+                        <td>{{ rental.equipment.inventory_code }}</td>
+                        <td>{{ rental.start_date }}</td>
+                        <td>{{ rental.end_date }}</td>
+                        <td>{{ rental.rental_duration }}</td>
+                        <td>{{ rental.total_price }}</td>
+                        <td class="action-links">
+                            <a href="{% url 'edit_rental' rental.id %}">Edit</a>
+                            <a href="{% url 'delete_rental' rental.id %}" class="delete">Delete</a>
+                        </td>
+                    </tr>
+                
+            </tr>
+        {% empty %}
+            <tr>
+                <td colspan="8" class="empty-message">No rentals due today.</td>
+            </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<!-- Due in 3 Days Rentals -->
+<h2 id="h3-rentals">Returns Due in 3 Days</h2>
+<table>
+    <tbody>
+        <tr>
+            <tr>
+                <th>No</th>
+                <th>Customer</th>
+                <th>Equipment</th>
+                <th>Start Date</th>
+                <th>End Date</th>
+                <th>Duration (Months)</th>
+                <th>Total Price</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for rental in rentals_ending_3_days %}
+                <tr>
+                    <td>{{ forloop.counter }}</td>
+                    <td>{{ rental.customer.name }}</td>
+                    <td>{{ rental.equipment.inventory_code }}</td>
+                    <td>{{ rental.start_date }}</td>
+                    <td>{{ rental.end_date }}</td>
+                    <td>{{ rental.rental_duration }}</td>
+                    <td>{{ rental.total_price }}</td>
+                    <td class="action-links">
+                        <a href="{% url 'edit_rental' rental.id %}">Edit</a>
+                        <a href="{% url 'delete_rental' rental.id %}" class="delete">Delete</a>
+                    </td>
+                </tr> 
+        </tr>
+    {% empty %}
+        <tr>
+            <td colspan="8" class="empty-message">No rentals due in 3 days.</td>
+        </tr>
+    {% endfor %}
+</tbody>
+</table>
+
+<!-- Due in 5 Days Rentals -->
+<h2 id="h5-rentals">Returns Due in 5 Days</h2>
+<table>
+    <tbody>
+        <tr>
+            <tr>
+                <th>No</th>
+                <th>Customer</th>
+                <th>Equipment</th>
+                <th>Start Date</th>
+                <th>End Date</th>
+                <th>Duration (Months)</th>
+                <th>Total Price</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for rental in rentals_ending_5_days %}
+                <tr>
+                    <td>{{ forloop.counter }}</td>
+                    <td>{{ rental.customer.name }}</td>
+                    <td>{{ rental.equipment.inventory_code }}</td>
+                    <td>{{ rental.start_date }}</td>
+                    <td>{{ rental.end_date }}</td>
+                    <td>{{ rental.rental_duration }}</td>
+                    <td>{{ rental.total_price }}</td>
+                    <td class="action-links">
+                        <a href="{% url 'edit_rental' rental.id %}">Edit</a>
+                        <a href="{% url 'delete_rental' rental.id %}" class="delete">Delete</a>
+                    </td>
+                </tr>
+            
+        </tr>
+    {% empty %}
+        <tr>
+            <td colspan="8" class="empty-message">No rentals due in 5 days.</td>
+        </tr>
+    {% endfor %}
+</tbody>
+</table>
+
     </main>
 
     <footer>
