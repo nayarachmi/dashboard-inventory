@@ -1,1 +1,1 @@
-web: gunicorn dashboard-inventory.wsgi
+web: gunicorn dashboard_inventory.wsgi
