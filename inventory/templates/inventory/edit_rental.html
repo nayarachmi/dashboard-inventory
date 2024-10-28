@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Rental</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f9f9f9;
+        }
+        h1 {
+            color: #333;
+        }
+        form {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input[type="text"],
+        input[type="number"],
+        input[type="date"] {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        button {
+            background-color: #4CAF50; /* Green */
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        a {
+            text-decoration: none;
+            color: #007BFF;
+            font-weight: bold;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <h1>Edit Rental</h1>
+    <form method="POST">
+        {% csrf_token %}
+        
+        <label for="rental_code">Rental Code:</label>
+        <input type="text" id="rental_code" name="rental_code" value="{{ rental.equipment.inventory_code }}" required readonly>
+
+        <label for="customer">Customer:</label>
+        <input type="text" id="customer" name="customer" value="{{ rental.customer.name }}" required readonly>
+
+        <label for="duration">Duration (months):</label>
+        <input type="number" id="duration" name="duration" value="{{ rental.rental_duration }}" required>
+
+        <label for="start_date">Start Date:</label>
+        <input type="date" id="start_date" name="start_date" value="{{ rental.start_date|date:'Y-m-d' }}" required>
+
+        <label for="end_date">End Date:</label>
+        <input type="date" id="end_date" name="end_date" value="{{ rental.end_date|date:'Y-m-d' }}" required>
+
+        <button type="submit">Update Rental</button>
+    </form>
+    <a href="{% url 'dashboard' %}">Cancel</a>
+</body>
+</html>

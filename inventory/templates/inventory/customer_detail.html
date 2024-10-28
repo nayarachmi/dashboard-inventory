@@ -1,0 +1,93 @@
+<!-- inventory/templates/inventory/customer_detail.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customer Detail</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f9f9f9;
+            margin: 0;
+            padding: 20px;
+        }
+        h1 {
+            color: #333;
+        }
+        .customer-info, .rental-history {
+            background-color: #fff;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        th, td {
+            border: 1px solid #ccc;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        a {
+            text-decoration: none;
+            color: #007BFF;
+            font-weight: bold;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <h1>Customer Detail: {{ customer.name }}</h1>
+
+    <div class="customer-info">
+        <h2>Customer Information</h2>
+        <p><strong>Email:</strong> {{ customer.email }}</p>
+        <p><strong>Phone:</strong> {{ customer.phone_number }}</p>
+        <p><strong>WhatsApp:</strong> {{ customer.whatsapp_number }}</p>
+        <p><strong>Shipping Address:</strong> {{ customer.shipping_address }}</p>
+        <p><strong>KTP Address:</strong> {{ customer.ktp_address }}</p>
+        <p><strong>Refund Account:</strong> {{ customer.refund_account_number }}</p>
+    </div>
+
+    <div class="rental-history">
+        <h2>Rental History</h2>
+        {% if rental_history %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>Equipment</th>
+                        <th>Start Date</th>
+                        <th>End Date</th>
+                        <th>Duration (Months)</th>
+                        <th>Total Price</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for rental in rental_history %}
+                        <tr>
+                            <td>{{ rental.equipment.inventory_code }}</td>
+                            <td>{{ rental.start_date }}</td>
+                            <td>{{ rental.end_date }}</td>
+                            <td>{{ rental.rental_duration }}</td>
+                            <td>{{ rental.total_price }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p>No rental history available.</p>
+        {% endif %}
+    </div>
+
+    <a href="{% url 'dashboard' %}">Back to Dashboard</a>
+</body>
+</html>

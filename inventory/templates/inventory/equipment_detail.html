@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Equipment Detail</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f9f9f9;
+            padding: 20px;
+        }
+        h1, h2 {
+            color: #333;
+        }
+        .equipment-info, .current-rental, .rental-history {
+            background-color: #fff;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        th, td {
+            border: 1px solid #ccc;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        a {
+            text-decoration: none;
+            color: #007BFF;
+            font-weight: bold;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+        .customer-info {
+            margin-top: 10px;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Equipment Detail: {{ equipment.inventory_code }}</h1>
+
+    <div class="equipment-info">
+        <h2>Equipment Information</h2>
+        <p><strong>Brand:</strong> {{ equipment.brand }}</p>
+        <p><strong>Type:</strong> {{ equipment.type }}</p>
+        <p><strong>Inventory Number:</strong> {{ equipment.inventory_number }}</p>
+        <p><strong>Monthly Rental Price:</strong> Rp {{ equipment.monthly_rental_price|floatformat:2 }}</p>
+        <p><strong>Purchase Date:</strong> {{ equipment.purchase_date }}</p>
+        <p><strong>Owner:</strong> {{ equipment.owner.name }}</p>
+        <p><strong>Position:</strong> {{ equipment.get_position_display }}</p>
+    </div>
+
+    <div class="current-rental">
+        <h2>Current Rental</h2>
+        {% if current_rental %}
+            <table>
+                <tr>
+                    <th>Customer Name</th>
+                    <td>{{ current_rental.customer.name }}</td>
+                </tr>
+                <tr>
+                    <th>Start Date</th>
+                    <td>{{ current_rental.start_date }}</td>
+                </tr>
+                <tr>
+                    <th>End Date</th>
+                    <td>{{ current_rental.end_date }}</td>
+                </tr>
+                <tr>
+                    <th>Duration (months)</th>
+                    <td>{{ current_rental.rental_duration }}</td>
+                </tr>
+                <tr>
+                    <th>Total Price</th>
+                    <td>Rp {{ current_rental.total_price|floatformat:2 }}</td>
+                </tr>
+            </table>
+            
+            <div class="customer-info">
+                <h3>Customer Details</h3>
+                <p><strong>Email:</strong> {{ current_rental.customer.email }}</p>
+                <p><strong>Phone:</strong> {{ current_rental.customer.phone_number }}</p>
+                <p><strong>WhatsApp:</strong> {{ current_rental.customer.whatsapp_number }}</p>
+                <p><strong>Shipping Address:</strong> {{ current_rental.customer.shipping_address }}</p>
+                <p><strong>Maps:</strong> <a href="{{ current_rental.customer.maps_link }}" target="_blank">View Location</a></p>
+            </div>
+        {% else %}
+            <p>This equipment is currently not rented.</p>
+        {% endif %}
+    </div>
+    
+    <div class="rental-history">
+        <h2>Rental History</h2>
+        {% if rental_history %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>Customer</th>
+                        <th>Start Date</th>
+                        <th>End Date</th>
+                        <th>Duration</th>
+                        <th>Total Price</th>
+                        <th>Details</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for rental in rental_history %}
+                        <tr>
+                            <td>{{ rental.customer.name }}</td>
+                            <td>{{ rental.start_date }}</td>
+                            <td>{{ rental.end_date }}</td>
+                            <td>{{ rental.rental_duration }} months</td>
+                            <td>Rp {{ rental.total_price|floatformat:2 }}</td>
+                            <td>
+                                <a href="{% url 'customer_detail' rental.customer.id %}">View Customer</a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p>No rental history available for this equipment.</p>
+        {% endif %}
+    </div>
+    
+    <a href="{% url 'dashboard' %}">Back to Dashboard</a>
+</body>
+</html>

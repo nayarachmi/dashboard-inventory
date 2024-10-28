@@ -1,0 +1,22 @@
+# Python
+*.py[cod]
+__pycache__/
+
+# Django
+*.log
+*.sqlite3
+db.sqlite3
+/media
+/staticfiles
+*.pot
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+.env
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# VS Code
+.vscode/
