@@ -14,6 +14,9 @@ db.sqlite3
 *.pyd
 *.egg-info/
 .env
+venv/
+
+
 
 # Jupyter Notebook
 .ipynb_checkpoints
