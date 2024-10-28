@@ -15,6 +15,7 @@ db.sqlite3
 *.egg-info/
 .env
 venv/
+env/
 
 
 
