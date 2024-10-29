@@ -5,7 +5,7 @@ from django.conf.urls.static import static
 
 from .views import (
     dashboard_view, add_equipment_view, add_owner_view, 
-    equipment_detail_view, add_customer_view
+    equipment_detail_view, add_customer_view, financial_dashboard, add_transaction, transaction_detail, edit_transaction, delete_transaction, record_rental_payment
 )
 from .views import edit_equipment, delete_equipment, edit_customer, delete_customer, add_rental, rental_detail, edit_rental, delete_rental, customer_detail, equipment_detail_view, inventory_dashboard
 
@@ -27,4 +27,10 @@ urlpatterns = [
     path('customer/<int:id>/', customer_detail, name='customer_detail'),
     path('equipment/<int:id>/', equipment_detail_view, name='equipment_detail'),
     path('', inventory_dashboard, name='inventory_dashboard'),
+    path('finances/', financial_dashboard, name='financial_dashboard'),
+    path('finances/add/', add_transaction, name='add_transaction'),
+    path('finances/<int:transaction_id>/', transaction_detail, name='transaction_detail'),
+    path('finances/<int:transaction_id>/edit/', edit_transaction, name='edit_transaction'),
+    path('finances/<int:transaction_id>/delete/', delete_transaction, name='delete_transaction'),
+    path('rental/<int:rental_id>/payment/', record_rental_payment, name='record_rental_payment'),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

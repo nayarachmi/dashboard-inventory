@@ -62,3 +62,142 @@ class Rental(models.Model):
         # Menghitung total_price
         self.total_price = self.equipment.monthly_rental_price * self.rental_duration
         super().save(*args, **kwargs)
+
+
+from django.db import models
+from django.utils import timezone
+from django.core.validators import MinValueValidator
+from decimal import Decimal
+
+class FinancialTransaction(models.Model):
+    TRANSACTION_TYPES = [
+        ('income', 'Income'),
+        ('expense', 'Expense'),
+    ]
+
+    date = models.DateField(default=timezone.now)
+    transaction_type = models.CharField(max_length=7, choices=TRANSACTION_TYPES)
+    amount = models.DecimalField(
+        max_digits=10, 
+        decimal_places=2,
+        validators=[MinValueValidator(Decimal('0.01'))]
+    )
+    description = models.TextField()
+    
+    # Optional relations to existing models
+    rental = models.ForeignKey(
+        'Rental', 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True,
+        related_name='financial_transactions'
+    )
+    customer = models.ForeignKey(
+        'Customer', 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True,
+        related_name='financial_transactions'
+    )
+    equipment = models.ForeignKey(
+        'Equipment', 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True,
+        related_name='financial_transactions'
+    )
+
+    # For expenses only
+    expense_category = models.CharField(
+        max_length=100, 
+        null=True, 
+        blank=True,
+        choices=[
+            ('maintenance', 'Equipment Maintenance'),
+            ('purchase', 'Equipment Purchase'),
+            ('operational', 'Operational Costs'),
+            ('other', 'Other Expenses')
+        ]
+    )
+    
+    # For rental payments
+    payment_period_start = models.DateField(null=True, blank=True)
+    payment_period_end = models.DateField(null=True, blank=True)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-date', '-created_at']
+
+    def __str__(self):
+        return f"{self.get_transaction_type_display()} - {self.amount} - {self.date}"
+
+    def save(self, *args, **kwargs):
+        # If this is a rental payment, automatically set the payment period
+        if self.rental and self.transaction_type == 'income':
+            if not self.payment_period_start:
+                self.payment_period_start = self.rental.start_date
+            if not self.payment_period_end:
+                months = self.rental.rental_duration
+                self.payment_period_end = self.payment_period_start + timezone.timedelta(days=30*months)
+        super().save(*args, **kwargs)
+
+class RentalPayment(models.Model):
+    rental = models.ForeignKey(Rental, on_delete=models.CASCADE, related_name='payments')
+    amount_paid = models.DecimalField(max_digits=10, decimal_places=2)
+    payment_date = models.DateField(default=timezone.now)
+    payment_for_month = models.DateField()  # The month this payment covers
+    transaction = models.OneToOneField(
+        FinancialTransaction, 
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True
+    )
+
+    def save(self, *args, **kwargs):
+        # Create corresponding FinancialTransaction if it doesn't exist
+        if not self.transaction:
+            self.transaction = FinancialTransaction.objects.create(
+                transaction_type='income',
+                amount=self.amount_paid,
+                description=f"Rental payment for {self.rental.equipment} by {self.rental.customer}",
+                rental=self.rental,
+                customer=self.rental.customer,
+                equipment=self.rental.equipment,
+                payment_period_start=self.payment_for_month,
+                payment_period_end=self.payment_for_month + timezone.timedelta(days=30)
+            )
+        super().save(*args, **kwargs)
+
+    class Meta:
+        ordering = ['-payment_date']
+        
+    def __str__(self):
+        return f"Payment of {self.amount_paid} for {self.rental} on {self.payment_date}"
+    
+    # inventory/models.py
+from django.db import models
+
+class Transaction(models.Model):
+    TRANSACTION_TYPES = [
+        ('income', 'Income'),
+        ('expense', 'Expense'),
+    ]
+    
+    date = models.DateField()
+    transaction_type = models.CharField(max_length=10, choices=TRANSACTION_TYPES)
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    description = models.CharField(max_length=200)
+    expense_category = models.CharField(max_length=50, blank=True, null=True)
+    
+    # Optional relations
+    rental = models.ForeignKey('Rental', on_delete=models.SET_NULL, null=True, blank=True)
+    customer = models.ForeignKey('Customer', on_delete=models.SET_NULL, null=True, blank=True)
+    equipment = models.ForeignKey('Equipment', on_delete=models.SET_NULL, null=True, blank=True)
+    
+    class Meta:
+        ordering = ['-date']
+    
+    def __str__(self):
+        return f"{self.get_transaction_type_display()} - {self.description} - Rp{self.amount}"

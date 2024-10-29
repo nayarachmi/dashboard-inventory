@@ -40,3 +40,59 @@ class RentalForm(forms.ModelForm):
             cleaned_data['end_date'] = start_date + timezone.timedelta(days=rental_duration * 30)  # Assuming 30 days in a month
 
         return cleaned_data
+    
+from django import forms
+from .models import FinancialTransaction, RentalPayment
+
+class FinancialTransactionForm(forms.ModelForm):
+    class Meta:
+        model = FinancialTransaction
+        fields = [
+            'date',
+            'transaction_type',
+            'amount',
+            'description',
+            'rental',
+            'customer',
+            'equipment',
+            'expense_category',
+            'payment_period_start',
+            'payment_period_end',
+        ]
+        widgets = {
+            'date': forms.DateInput(attrs={'type': 'date'}),
+            'payment_period_start': forms.DateInput(attrs={'type': 'date'}),
+            'payment_period_end': forms.DateInput(attrs={'type': 'date'}),
+        }
+
+    def clean(self):
+        cleaned_data = super().clean()
+        transaction_type = cleaned_data.get('transaction_type')
+        expense_category = cleaned_data.get('expense_category')
+        
+        if transaction_type == 'expense' and not expense_category:
+            raise forms.ValidationError(
+                'Expense category is required for expense transactions.'
+            )
+        
+        return cleaned_data
+
+class RentalPaymentForm(forms.ModelForm):
+    class Meta:
+        model = RentalPayment
+        fields = ['amount_paid', 'payment_date', 'payment_for_month']
+        widgets = {
+            'payment_date': forms.DateInput(attrs={'type': 'date'}),
+            'payment_for_month': forms.DateInput(attrs={'type': 'date'}),
+        }
+
+    def clean(self):
+        cleaned_data = super().clean()
+        amount_paid = cleaned_data.get('amount_paid')
+        
+        if amount_paid and amount_paid <= 0:
+            raise forms.ValidationError(
+                'Payment amount must be greater than zero.'
+            )
+        
+        return cleaned_data

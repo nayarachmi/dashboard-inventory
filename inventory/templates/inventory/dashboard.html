@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
     
@@ -656,6 +657,285 @@ h4 {
     {% endfor %}
 </tbody>
 </table>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inventory & Financial Dashboard</title>
+    <style>
+        /* Existing styles remain the same */
+        
+        /* Additional Financial Dashboard Styles */
+        .financial-summary {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            margin: 20px 0;
+        }
+
+        .summary-card {
+            background-color: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .income {
+            border-left: 4px solid #4CAF50;
+        }
+
+        .expenses {
+            border-left: 4px solid #f44336;
+        }
+
+        .net {
+            border-left: 4px solid #2196F3;
+        }
+
+        .amount {
+            font-size: 24px;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+
+        .positive {
+            color: #4CAF50;
+        }
+
+        .negative {
+            color: #f44336;
+        }
+
+        .neutral {
+            color: #2196F3;
+        }
+
+        .date-filter {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            margin: 20px 0;
+            align-items: center;
+        }
+
+        .date-filter input[type="date"] {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        .date-filter button {
+            padding: 8px 16px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .expense-breakdown {
+            background-color: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .expense-chart {
+            margin-top: 20px;
+            height: 200px;
+        }
+
+        .transaction-filters {
+            display: flex;
+            gap: 10px;
+            margin: 20px 0;
+        }
+
+        .filter-button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            background-color: #f5f5f5;
+        }
+
+        .filter-button.active {
+            background-color: #4CAF50;
+            color: white;
+        }
+
+        .transaction-badge {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .income-badge {
+            background-color: #e8f5e9;
+            color: #4CAF50;
+        }
+
+        .expense-badge {
+            background-color: #ffebee;
+            color: #f44336;
+        }
+    </style>
+</head>
+<body>
+    <!-- Existing header and navigation -->
+    
+    <main>
+        <!-- Add Financial Section after existing sections -->
+        <h2>Financial Overview</h2>
+        
+        <!-- Date Filter -->
+        <form method="GET" action="{% url 'financial_dashboard' %}" class="date-filter">
+            <input type="date" name="start_date" value="{{ start_date|date:'Y-m-d' }}">
+            <span>to</span>
+            <input type="date" name="end_date" value="{{ end_date|date:'Y-m-d' }}">
+            <button type="submit">Apply Filter</button>
+        </form>
+
+        <!-- Financial Summary -->
+        <div class="financial-summary">
+            <div class="summary-card income">
+                <h3>Total Income</h3>
+                <div class="amount positive">Rp {{ total_income|floatformat:2 }}</div>
+            </div>
+            <div class="summary-card expenses">
+                <h3>Total Expenses</h3>
+                <div class="amount negative">Rp {{ total_expenses|floatformat:2 }}</div>
+            </div>
+            <div class="summary-card net">
+                <h3>Net Income</h3>
+                <div class="amount {% if net_income >= 0 %}positive{% else %}negative{% endif %}">
+                    Rp {{ net_income|floatformat:2 }}
+                </div>
+            </div>
+        </div>
+
+        <!-- Expense Breakdown -->
+        <div class="expense-breakdown">
+            <h3>Expense Breakdown</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Category</th>
+                        <th>Amount</th>
+                        <th>Percentage</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for expense in expense_breakdown %}
+                    <tr>
+                        <td>{{ expense.expense_category|default:"Uncategorized"|title }}</td>
+                        <td>Rp {{ expense.total|floatformat:2 }}</td>
+                        <td>{{ expense.percentage }}%</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="3" class="empty-message">No expenses recorded for this period.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Transaction List -->
+        <h3>Recent Transactions</h3>
+        <div class="transaction-filters">
+            <button class="filter-button active" data-filter="all">All</button>
+            <button class="filter-button" data-filter="income">Income</button>
+            <button class="filter-button" data-filter="expense">Expenses</button>
+        </div>
+        
+        <table>
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Type</th>
+                    <th>Amount</th>
+                    <th>Description</th>
+                    <th>Category</th>
+                    <th>Related To</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for transaction in transactions %}
+                <tr>
+                    <td>{{ transaction.date }}</td>
+                    <td>
+                        <span class="transaction-badge {% if transaction.transaction_type == 'income' %}income-badge{% else %}expense-badge{% endif %}">
+                            {{ transaction.get_transaction_type_display }}
+                        </span>
+                    </td>
+                    <td>Rp {{ transaction.amount|floatformat:2 }}</td>
+                    <td>{{ transaction.description }}</td>
+                    <td>{{ transaction.expense_category|default:"-" }}</td>
+                    <td>
+                        {% if transaction.rental %}
+                            Rental #{{ transaction.rental.id }}
+                        {% elif transaction.customer %}
+                            {{ transaction.customer.name }}
+                        {% elif transaction.equipment %}
+                            {{ transaction.equipment.inventory_code }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                    <td class="action-links">
+                        <a href="{% url 'edit_transaction' transaction.id %}">Edit</a>
+                        <a href="{% url 'delete_transaction' transaction.id %}" class="delete">Delete</a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" class="empty-message">No transactions found for this period.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <!-- Add Transaction Button -->
+        <div style="text-align: center; margin: 20px 0;">
+            <a href="{% url 'add_transaction' %}" class="alert-button info" style="text-decoration: none;">
+                Add New Transaction
+            </a>
+        </div>
+    </main>
+
+    <!-- Existing footer -->
+    
+    <script>
+        // Transaction filter functionality
+        document.querySelectorAll('.filter-button').forEach(button => {
+            button.addEventListener('click', function() {
+                // Update active button
+                document.querySelectorAll('.filter-button').forEach(btn => 
+                    btn.classList.remove('active')
+                );
+                this.classList.add('active');
+                
+                // Filter transactions
+                const filterType = this.dataset.filter;
+                document.querySelectorAll('tbody tr').forEach(row => {
+                    if (filterType === 'all') {
+                        row.style.display = '';
+                    } else {
+                        const transactionType = row.querySelector('.transaction-badge').textContent.trim().toLowerCase();
+                        row.style.display = transactionType === filterType ? '' : 'none';
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>
 
     </main>
 

@@ -1,6 +1,6 @@
-from datetime import date, timezone
+from datetime import date, datetime, timezone
 from django.shortcuts import get_object_or_404, render, redirect
-from .models import Equipment, Owner, Customer, Rental
+from .models import Equipment, Owner, Customer, Rental, Transaction
 from .forms import EquipmentForm, OwnerForm, CustomerForm, RentalForm
 from django.utils import timezone
 from datetime import timedelta
@@ -68,6 +68,61 @@ def dashboard_view(request):
         end_date__lte=five_days_from_now
     )
 
+    end_date = request.GET.get('end_date')
+    start_date = request.GET.get('start_date')
+    
+    if end_date:
+        end_date = datetime.strptime(end_date, '%Y-%m-%d')
+    else:
+        end_date = timezone.now()
+    
+    if start_date:
+        start_date = datetime.strptime(start_date, '%Y-%m-%d')
+    else:
+        start_date = end_date - timedelta(days=30)
+    
+    # Get all transactions within date range
+    transactions = Transaction.objects.filter(
+        date__range=[start_date, end_date]
+    ).order_by('-date')
+    
+    # Calculate total income and expenses
+    income_total = transactions.filter(
+        transaction_type='income'
+    ).aggregate(
+        total=Sum('amount')
+    )['total'] or 0
+    
+    expenses_total = transactions.filter(
+        transaction_type='expense'
+    ).aggregate(
+        total=Sum('amount')
+    )['total'] or 0
+    
+    # Get expense breakdown by category
+    raw_expense_breakdown = transactions.filter(
+        transaction_type='expense'
+    ).values('expense_category').annotate(
+        total=Sum('amount')
+    ).order_by('-total')
+    
+    # Calculate percentages
+    expense_breakdown = []
+    for expense in raw_expense_breakdown:
+        percentage = 0
+        if expenses_total > 0:
+            percentage = (expense['total'] / expenses_total) * 100
+            
+        expense_breakdown.append({
+            'expense_category': expense['expense_category'],
+            'total': expense['total'],
+            'percentage': round(percentage, 1)
+        })
+    
+    # Calculate net income
+    net_income = income_total - expenses_total
+
+
     context = {
         'equipment_list': equipment_list,
         'customer_list': customer_list,
@@ -77,6 +132,13 @@ def dashboard_view(request):
         'rentals_ending_5_days': rentals_ending_5_days,
         'status': status,
         'search_query': query,
+        'start_date': start_date,
+        'end_date': end_date,
+        'transactions': transactions,
+        'total_income': income_total,
+        'total_expenses': expenses_total,
+        'net_income': net_income,
+        'expense_breakdown': expense_breakdown,
     }
 
     return render(request, 'inventory/dashboard.html', context)
@@ -304,3 +366,124 @@ def inventory_dashboard(request):
     return render(request, 'inventory/dashboard.html', context)
 
 
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib import messages
+from django.db.models import Sum
+from django.utils import timezone
+from .models import FinancialTransaction, RentalPayment, Rental
+from .forms import FinancialTransactionForm, RentalPaymentForm
+
+def financial_dashboard(request):
+    # Get date range from request parameters or default to current month
+    start_date = request.GET.get('start_date', timezone.now().replace(day=1).date())
+    end_date = request.GET.get('end_date', timezone.now().date())
+    
+    # Get all transactions within date range
+    transactions = FinancialTransaction.objects.filter(
+        date__range=[start_date, end_date]
+    )
+    
+    # Calculate summaries
+    total_income = transactions.filter(
+        transaction_type='income'
+    ).aggregate(Sum('amount'))['amount__sum'] or 0
+    
+    total_expenses = transactions.filter(
+        transaction_type='expense'
+    ).aggregate(Sum('amount'))['amount__sum'] or 0
+    
+    net_income = total_income - total_expenses
+    
+    # Get expense breakdown by category
+    expense_breakdown = transactions.filter(
+        transaction_type='expense'
+    ).values('expense_category').annotate(
+        total=Sum('amount')
+    )
+    
+    # Get upcoming rental payments
+    upcoming_payments = Rental.objects.filter(
+        end_date__gt=timezone.now().date(),
+        financial_transactions__isnull=True
+    )
+    
+    context = {
+        'transactions': transactions,
+        'total_income': total_income,
+        'total_expenses': total_expenses,
+        'net_income': net_income,
+        'expense_breakdown': expense_breakdown,
+        'upcoming_payments': upcoming_payments,
+        'start_date': start_date,
+        'end_date': end_date,
+    }
+    
+    return render(request, 'inventory/financial_dashboard.html', context)
+
+def add_transaction(request):
+    if request.method == 'POST':
+        form = FinancialTransactionForm(request.POST)
+        if form.is_valid():
+            transaction = form.save()
+            
+            # If this is a rental payment, update the rental status
+            if (transaction.transaction_type == 'income' and 
+                transaction.rental and 
+                transaction.rental.financial_transactions.count() == 1):
+                transaction.rental.equipment.position = 'rented'
+                transaction.rental.equipment.save()
+            
+            messages.success(request, 'Transaction added successfully!')
+            return redirect('financial_dashboard')
+    else:
+        form = FinancialTransactionForm()
+    
+    return render(request, 'inventory/add_transaction.html', {'form': form})
+
+def record_rental_payment(request, rental_id):
+    rental = get_object_or_404(Rental, id=rental_id)
+    
+    if request.method == 'POST':
+        form = RentalPaymentForm(request.POST)
+        if form.is_valid():
+            payment = form.save(commit=False)
+            payment.rental = rental
+            payment.save()
+            
+            messages.success(request, 'Rental payment recorded successfully!')
+            return redirect('rental_detail', rental_id=rental.id)
+    else:
+        form = RentalPaymentForm()
+    
+    context = {
+        'form': form,
+        'rental': rental,
+    }
+    
+    return render(request, 'inventory/record_rental_payment.html', context)
+
+def transaction_detail(request, transaction_id):
+    transaction = get_object_or_404(FinancialTransaction, id=transaction_id)
+    return render(request, 'inventory/transaction_detail.html', {
+        'transaction': transaction
+    })
+
+def edit_transaction(request, transaction_id):
+    transaction = get_object_or_404(FinancialTransaction, id=transaction_id)
+    
+    if request.method == 'POST':
+        form = FinancialTransactionForm(request.POST, instance=transaction)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Transaction updated successfully!')
+            return redirect('financial_dashboard')
+    else:
+        form = FinancialTransactionForm(instance=transaction)
+    
+    return render(request, 'inventory/edit_transaction.html', {'form': form})
+
+def delete_transaction(request, transaction_id):
+    transaction = get_object_or_404(FinancialTransaction, id=transaction_id)
+    transaction.delete()
+    messages.success(request, 'Transaction deleted successfully!')
+    return redirect('financial_dashboard')
