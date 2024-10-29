@@ -1,10 +1,7 @@
 from datetime import date, datetime, timezone
 from django.shortcuts import get_object_or_404, render, redirect
-from .models import Equipment, Owner, Customer, Rental, Transaction
+from .models import Equipment, ExpenseCategory, Owner, Customer, Rental, Transaction
 from .forms import EquipmentForm, OwnerForm, CustomerForm, RentalForm
-from django.utils import timezone
-from datetime import timedelta
-from django.utils import timezone
 from django.utils import timezone
 from datetime import timedelta
 
@@ -418,72 +415,123 @@ def financial_dashboard(request):
         'end_date': end_date,
     }
     
-    return render(request, 'inventory/financial_dashboard.html', context)
+    return render(request, 'inventory/dashboard.html', context)
+
 
 def add_transaction(request):
     if request.method == 'POST':
-        form = FinancialTransactionForm(request.POST)
-        if form.is_valid():
-            transaction = form.save()
+        try:
+            # Get basic transaction data
+            transaction_type = request.POST.get('transaction_type')
+            date = request.POST.get('date')
+            amount = request.POST.get('amount')
+            description = request.POST.get('description')
             
-            # If this is a rental payment, update the rental status
-            if (transaction.transaction_type == 'income' and 
-                transaction.rental and 
-                transaction.rental.financial_transactions.count() == 1):
-                transaction.rental.equipment.position = 'rented'
-                transaction.rental.equipment.save()
+            # Create transaction object
+            transaction = Transaction(
+                transaction_type=transaction_type,
+                date=date,
+                amount=amount,
+                description=description
+            )
             
+            # Handle expense category for expense transactions
+            if transaction_type == 'expense':
+                expense_category_id = request.POST.get('expense_category')
+                if expense_category_id:
+                    transaction.expense_category = get_object_or_404(
+                        ExpenseCategory, 
+                        id=expense_category_id
+                    )
+            
+            # Handle related entities
+            related_to_type = request.POST.get('related_to_type')
+            if related_to_type:
+                related_id = request.POST.get(related_to_type)
+                if related_id:
+                    if related_to_type == 'rental':
+                        transaction.rental = get_object_or_404(Rental, id=related_id)
+                    elif related_to_type == 'customer':
+                        transaction.customer = get_object_or_404(Customer, id=related_id)
+                    elif related_to_type == 'equipment':
+                        transaction.equipment = get_object_or_404(Equipment, id=related_id)
+            
+            transaction.save()
             messages.success(request, 'Transaction added successfully!')
-            return redirect('financial_dashboard')
-    else:
-        form = FinancialTransactionForm()
-    
-    return render(request, 'inventory/add_transaction.html', {'form': form})
-
-def record_rental_payment(request, rental_id):
-    rental = get_object_or_404(Rental, id=rental_id)
-    
-    if request.method == 'POST':
-        form = RentalPaymentForm(request.POST)
-        if form.is_valid():
-            payment = form.save(commit=False)
-            payment.rental = rental
-            payment.save()
+            return redirect('dashboard')
             
-            messages.success(request, 'Rental payment recorded successfully!')
-            return redirect('rental_detail', rental_id=rental.id)
-    else:
-        form = RentalPaymentForm()
+        except Exception as e:
+            messages.error(request, f'Error adding transaction: {str(e)}')
+            return redirect('inventory/add_transaction')
     
+    # GET request - display form
     context = {
-        'form': form,
-        'rental': rental,
+        'expense_categories': ExpenseCategory.objects.all(),
+        'customers': Customer.objects.all(),
+        'equipment_list': Equipment.objects.all(),
+        'rentals': Rental.objects.all(),
+        'transaction': {'date': timezone.now()},  # Set default date to today
     }
-    
-    return render(request, 'inventory/record_rental_payment.html', context)
-
-def transaction_detail(request, transaction_id):
-    transaction = get_object_or_404(FinancialTransaction, id=transaction_id)
-    return render(request, 'inventory/transaction_detail.html', {
-        'transaction': transaction
-    })
+    return render(request, 'inventory/add_transaction.html', context)
 
 def edit_transaction(request, transaction_id):
-    transaction = get_object_or_404(FinancialTransaction, id=transaction_id)
+    transaction = get_object_or_404(Transaction, id=transaction_id)
     
     if request.method == 'POST':
-        form = FinancialTransactionForm(request.POST, instance=transaction)
-        if form.is_valid():
-            form.save()
+        try:
+            # Update basic transaction data
+            transaction.transaction_type = request.POST.get('transaction_type')
+            transaction.date = request.POST.get('date')
+            transaction.amount = request.POST.get('amount')
+            transaction.description = request.POST.get('description')
+            
+            # Update expense category
+            if transaction.transaction_type == 'expense':
+                expense_category_id = request.POST.get('expense_category')
+                transaction.expense_category = get_object_or_404(
+                    ExpenseCategory, 
+                    id=expense_category_id
+                ) if expense_category_id else None
+            else:
+                transaction.expense_category = None
+            
+            # Update related entities
+            related_to_type = request.POST.get('related_to_type')
+            # Reset all relations first
+            transaction.rental = None
+            transaction.customer = None
+            transaction.equipment = None
+            
+            if related_to_type and request.POST.get(related_to_type):
+                related_id = request.POST.get(related_to_type)
+                if related_to_type == 'rental':
+                    transaction.rental = get_object_or_404(Rental, id=related_id)
+                elif related_to_type == 'customer':
+                    transaction.customer = get_object_or_404(Customer, id=related_id)
+                elif related_to_type == 'equipment':
+                    transaction.equipment = get_object_or_404(Equipment, id=related_id)
+            
+            transaction.save()
             messages.success(request, 'Transaction updated successfully!')
-            return redirect('financial_dashboard')
-    else:
-        form = FinancialTransactionForm(instance=transaction)
+            return redirect('dashboard')
+            
+        except Exception as e:
+            messages.error(request, f'Error updating transaction: {str(e)}')
     
-    return render(request, 'inventory/edit_transaction.html', {'form': form})
+    context = {
+        'transaction': transaction,
+        'expense_categories': ExpenseCategory.objects.all(),
+        'customers': Customer.objects.all(),
+        'equipment_list': Equipment.objects.all(),
+        'rentals': Rental.objects.all(),
+    }
+    return render(request, 'inventory/add_transaction.html', context)
 
 def delete_transaction(request, transaction_id):
-    transaction = get_object_or_404(FinancialTransaction, id=transaction_id)
-    transaction.delete()
-    messages.success(request, 'Transaction deleted successfully!')
-    return redirect('financial_dashboard')
+    transaction = get_object_or_404(Transaction, id=transaction_id)
+    try:
+        transaction.delete()
+        messages.success(request, 'Transaction deleted successfully!')
+    except Exception as e:
+        messages.error(request, f'Error deleting transaction: {str(e)}')
+    return redirect('dashboard')

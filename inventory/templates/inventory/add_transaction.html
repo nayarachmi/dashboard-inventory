@@ -1,0 +1,194 @@
+{% block content %}
+<main class="container">
+    <h1 class="page-title">{% if transaction.id %}Edit{% else %}Add New{% endif %} Transaction</h1>
+    
+    <div class="form-container">
+        <form method="POST" class="transaction-form">
+            {% csrf_token %}
+            
+            <div class="form-group">
+                <label for="transaction_type">Transaction Type*</label>
+                <select name="transaction_type" id="transaction_type" required>
+                    <option value="">Select Type</option>
+                    <option value="income" {% if transaction.transaction_type == 'income' %}selected{% endif %}>Income</option>
+                    <option value="expense" {% if transaction.transaction_type == 'expense' %}selected{% endif %}>Expense</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="date">Date*</label>
+                <input type="date" name="date" id="date" value="{{ transaction.date|date:'Y-m-d' }}" required>
+            </div>
+
+            <div class="form-group">
+                <label for="amount">Amount (Rp)*</label>
+                <input type="number" name="amount" id="amount" step="0.01" value="{{ transaction.amount }}" required>
+            </div>
+
+            <div class="form-group">
+                <label for="description">Description*</label>
+                <input type="text" name="description" id="description" value="{{ transaction.description }}" required>
+            </div>
+
+            <div class="form-group expense-only" style="display: none;">
+                <label for="expense_category">Expense Category</label>
+                <select name="expense_category" id="expense_category">
+                    <option value="">Select Category</option>
+                    {% for category in expense_categories %}
+                    <option value="{{ category.id }}" {% if transaction.expense_category_id == category.id %}selected{% endif %}>
+                        {{ category.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="related_to">Related To</label>
+                <select name="related_to_type" id="related_to_type">
+                    <option value="">None</option>
+                    <option value="rental">Rental</option>
+                    <option value="customer">Customer</option>
+                    <option value="equipment">Equipment</option>
+                </select>
+            </div>
+
+            <div class="form-group related-field" id="rental_field" style="display: none;">
+                <label for="rental">Rental ID</label>
+                <select name="rental" id="rental">
+                    <option value="">Select Rental</option>
+                    {% for rental in rentals %}
+                    <option value="{{ rental.id }}">Rental #{{ rental.id }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="form-group related-field" id="customer_field" style="display: none;">
+                <label for="customer">Customer</label>
+                <select name="customer" id="customer">
+                    <option value="">Select Customer</option>
+                    {% for customer in customers %}
+                    <option value="{{ customer.id }}">{{ customer.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="form-group related-field" id="equipment_field" style="display: none;">
+                <label for="equipment">Equipment</label>
+                <select name="equipment" id="equipment">
+                    <option value="">Select Equipment</option>
+                    {% for equipment in equipment_list %}
+                    <option value="{{ equipment.id }}">{{ equipment.inventory_code }} - {{ equipment.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="button primary">Save Transaction</button>
+                <a href="{% url 'financial_dashboard' %}" class="cancel-link">Cancel</a>
+            </div>
+        </form>
+    </div>
+</main>
+
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        background-color: #f4f4f4;
+        margin: 0;
+        padding: 20px;
+    }
+
+    .form-container {
+        max-width: 600px;
+        margin: 0 auto;
+        padding: 20px;
+        background-color: #fff;
+        border-radius: 5px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    }
+
+    h1 {
+        color: #333;
+        margin-bottom: 20px;
+        font-size: 24px;
+    }
+
+    .form-group {
+        margin-bottom: 15px;
+    }
+
+    .form-group label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: bold;
+        color: #333;
+    }
+
+    .form-group input[type="text"],
+    .form-group input[type="number"],
+    .form-group input[type="date"],
+    .form-group select {
+        width: 100%;
+        padding: 8px;
+        margin-bottom: 10px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+    }
+
+    .form-actions {
+        display: flex;
+        gap: 10px;
+        margin-top: 20px;
+    }
+
+    .button {
+        background-color: #28a745;
+        color: white;
+        padding: 10px 15px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+    }
+
+    .button:hover {
+        background-color: #218838;
+    }
+
+    .cancel-link {
+        display: inline-block;
+        margin-top: 10px;
+        color: #007bff;
+        text-decoration: none;
+    }
+
+    .cancel-link:hover {
+        text-decoration: underline;
+    }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const transactionType = document.getElementById('transaction_type');
+    const expenseOnly = document.querySelector('.expense-only');
+    const relatedToType = document.getElementById('related_to_type');
+    const relatedFields = document.querySelectorAll('.related-field');
+
+    // Handle transaction type change
+    transactionType.addEventListener('change', function() {
+        expenseOnly.style.display = (this.value === 'expense') ? 'block' : 'none';
+    });
+
+    // Handle related to type change
+    relatedToType.addEventListener('change', function() {
+        relatedFields.forEach(field => field.style.display = 'none');
+        if (this.value) {
+            document.getElementById(`${this.value}_field`).style.display = 'block';
+        }
+    });
+
+    // Trigger initial state
+    transactionType.dispatchEvent(new Event('change'));
+    relatedToType.dispatchEvent(new Event('change'));
+});
+</script>
+{% endblock %}

@@ -17,7 +17,7 @@
 
         header {
             background-color: #4CAF50;
-            padding: 20px;
+            padding: 7px;
             text-align: center;
             color: white;
         }
@@ -484,6 +484,7 @@ h4 {
             <thead>
                 <tr>
                     <th>No</th>
+                    <th>Rental ID</th>
                     <th>Customer</th>
                     <th>Equipment</th>
                     <th>Start Date</th>
@@ -497,6 +498,7 @@ h4 {
                 {% for rental in rental_list %}
                     <tr>
                         <td>{{ forloop.counter }}</td>
+                        <td>{{ rental.id }}</td>
                         <td>{{ rental.customer.name }}</td>
                         <td>{{ rental.equipment.inventory_code }}</td>
                         <td>{{ rental.start_date }}</td>

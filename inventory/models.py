@@ -201,3 +201,62 @@ class Transaction(models.Model):
     
     def __str__(self):
         return f"{self.get_transaction_type_display()} - {self.description} - Rp{self.amount}"
+    
+    from django.db import models
+from django.utils import timezone
+
+class ExpenseCategory(models.Model):
+    name = models.CharField(max_length=100)
+    description = models.TextField(blank=True)
+
+    class Meta:
+        verbose_name_plural = "Expense Categories"
+
+    def __str__(self):
+        return self.name
+
+class Transaction(models.Model):
+    TRANSACTION_TYPES = (
+        ('income', 'Income'),
+        ('expense', 'Expense'),
+    )
+
+    transaction_type = models.CharField(max_length=10, choices=TRANSACTION_TYPES)
+    date = models.DateField(default=timezone.now)
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    description = models.CharField(max_length=255)
+    expense_category = models.ForeignKey(
+        ExpenseCategory, 
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True
+    )
+    
+    # Related entities
+    rental = models.ForeignKey(
+        'Rental',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True
+    )
+    customer = models.ForeignKey(
+        'Customer',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True
+    )
+    equipment = models.ForeignKey(
+        'Equipment',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True
+    )
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-date', '-created_at']
+
+    def __str__(self):
+        return f"{self.get_transaction_type_display()} - {self.description} - Rp{self.amount}"
