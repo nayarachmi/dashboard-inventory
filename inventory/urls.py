@@ -1,5 +1,8 @@
 # inventory/urls.py
 from django.urls import path
+from django.conf import settings
+from django.conf.urls.static import static
+
 from .views import (
     dashboard_view, add_equipment_view, add_owner_view, 
     equipment_detail_view, add_customer_view
@@ -24,4 +27,4 @@ urlpatterns = [
     path('customer/<int:id>/', customer_detail, name='customer_detail'),
     path('equipment/<int:id>/', equipment_detail_view, name='equipment_detail'),
     path('', inventory_dashboard, name='inventory_dashboard'),
-]
+] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

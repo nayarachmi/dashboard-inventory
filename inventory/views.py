@@ -10,38 +10,65 @@ from datetime import timedelta
 
 
 # Dashboard view
+# views.py
+from django.db.models import Q
+from django.utils import timezone
+from datetime import timedelta
+
 def dashboard_view(request):
+    # Inisialisasi queryset dasar
     equipment_list = Equipment.objects.all()
     customer_list = Customer.objects.all()
-    rental_list = Rental.objects.all()
-    equipment_list = Equipment.objects.all()
-    current_rentals = Rental.objects.filter(end_date__isnull=True)
-    today = timezone.now().date()
-    five_days_ago = today + timedelta(days=5)
-    three_days_ago = today + timedelta(days=3)
+    rental_list = Rental.objects.all().select_related('equipment', 'customer')
     
-    query = request.GET.get('search', '')  # Ambil parameter search dari URL
-
+    query = request.GET.get('search', '').strip()
+    
     if query:
-        equipment_list = equipment_list.filter(name__icontains=query)  # Sesuaikan field
-        customer_list = customer_list.filter(name__icontains=query)    # Sesuaikan field
-        rental_list = rental_list.filter(equipment__name__icontains=query)  # Sesuaikan field
+        # Filter Equipment
+        equipment_list = equipment_list.filter(
+            Q(inventory_code__icontains=query) |
+            Q(brand__icontains=query) |
+            Q(type__icontains=query) |
+            Q(inventory_number__icontains=query)
+        )
+        
+        # Filter Customer
+        customer_list = customer_list.filter(
+            Q(name__icontains=query) |
+            Q(email__icontains=query) |
+            Q(phone_number__icontains=query) |
+            Q(whatsapp_number__icontains=query)
+        )
+        
+        # Filter Rental
+        rental_list = rental_list.filter(
+            Q(equipment__brand__icontains=query) |
+            Q(equipment__inventory_code__icontains=query) |
+            Q(customer__name__icontains=query) |
+            Q(total_price__icontains=query)
+        )
 
-
-    # Mengambil data rental yang akan jatuh tempo
-    rentals_ending_today = Rental.objects.filter(end_date=today)
-    rentals_ending_3_days = Rental.objects.filter(end_date__gte=today, end_date__lte=three_days_ago).exclude(end_date=today)
-    rentals_ending_5_days = Rental.objects.filter(end_date__gte=three_days_ago, end_date__lte=five_days_ago).exclude(end_date__in=[today, three_days_ago])
-
-    # Menangani filter status
+    # Filter status untuk equipment
     status = request.GET.get('status', '')
     if status:
-        equipment_list = Equipment.objects.filter(position=status)
-    else:
-        equipment_list = Equipment.objects.all()
+        equipment_list = equipment_list.filter(position=status)
 
+    # Perhitungan untuk rental yang akan jatuh tempo
+    today = timezone.now().date()
+    three_days_from_now = today + timedelta(days=3)
+    five_days_from_now = today + timedelta(days=5)
 
-    return render(request, 'inventory/dashboard.html', {
+    rentals_ending_today = Rental.objects.filter(end_date=today)
+    rentals_ending_3_days = Rental.objects.filter(
+        end_date__gt=today,
+        end_date__lte=three_days_from_now
+    )
+    rentals_ending_5_days = Rental.objects.filter(
+        end_date__gt=three_days_from_now,
+        end_date__lte=five_days_from_now
+    )
+
+    context = {
         'equipment_list': equipment_list,
         'customer_list': customer_list,
         'rental_list': rental_list,
@@ -50,7 +77,9 @@ def dashboard_view(request):
         'rentals_ending_5_days': rentals_ending_5_days,
         'status': status,
         'search_query': query,
-    })
+    }
+
+    return render(request, 'inventory/dashboard.html', context)
 
 # View for adding new equipment
 def add_equipment_view(request):
@@ -76,13 +105,16 @@ def add_owner_view(request):
 
 def add_customer_view(request):
     if request.method == 'POST':
-        form = CustomerForm(request.POST)
+        form = CustomerForm(request.POST, request.FILES)
         if form.is_valid():
-            form.save()  # Save the new customer
-            return redirect('dashboard')  # Redirect to the dashboard after saving
+            print(request.FILES)  # Debug: cek apakah file ada dalam request
+            form.save()
+            return redirect('dashboard')
+        else:
+            print(form.errors)  # Debug: cek error form jika ada
     else:
-        form = CustomerForm()  # Create an empty form for GET requests
-    
+        form = CustomerForm()
+
     return render(request, 'inventory/add_customer.html', {'form': form})
 
 # View for displaying equipment details
