@@ -17,9 +17,9 @@ def dashboard_view(request):
     equipment_list = Equipment.objects.all()
     customer_list = Customer.objects.all()
     rental_list = Rental.objects.all().select_related('equipment', 'customer')
-    
+
     query = request.GET.get('search', '').strip()
-    
+
     if query:
         # Filter Equipment
         equipment_list = equipment_list.filter(
@@ -28,7 +28,7 @@ def dashboard_view(request):
             Q(type__icontains=query) |
             Q(inventory_number__icontains=query)
         )
-        
+
         # Filter Customer
         customer_list = customer_list.filter(
             Q(name__icontains=query) |
@@ -36,7 +36,7 @@ def dashboard_view(request):
             Q(phone_number__icontains=query) |
             Q(whatsapp_number__icontains=query)
         )
-        
+
         # Filter Rental
         rental_list = rental_list.filter(
             Q(equipment__brand__icontains=query) |
@@ -65,60 +65,32 @@ def dashboard_view(request):
         end_date__lte=five_days_from_now
     )
 
-    end_date = request.GET.get('end_date')
-    start_date = request.GET.get('start_date')
-    
-    if end_date:
-        end_date = datetime.strptime(end_date, '%Y-%m-%d')
-    else:
-        end_date = timezone.now()
-    
-    if start_date:
-        start_date = datetime.strptime(start_date, '%Y-%m-%d')
-    else:
-        start_date = end_date - timedelta(days=30)
-    
-    # Get all transactions within date range
-    transactions = Transaction.objects.filter(
+    # Get date range from request parameters or default to current month
+    end_date = request.GET.get('end_date', timezone.now().date())
+    start_date = request.GET.get('start_date', end_date - timedelta(days=30))
+
+    # Get all financial transactions within date range
+    transactions = FinancialTransaction.objects.filter(
         date__range=[start_date, end_date]
     ).order_by('-date')
-    
+
     # Calculate total income and expenses
-    income_total = transactions.filter(
+    total_income = transactions.filter(
         transaction_type='income'
-    ).aggregate(
-        total=Sum('amount')
-    )['total'] or 0
-    
-    expenses_total = transactions.filter(
+    ).aggregate(Sum('amount'))['amount__sum'] or 0
+
+    total_expenses = transactions.filter(
         transaction_type='expense'
-    ).aggregate(
-        total=Sum('amount')
-    )['total'] or 0
-    
+    ).aggregate(Sum('amount'))['amount__sum'] or 0
+
+    net_income = total_income - total_expenses
+
     # Get expense breakdown by category
-    raw_expense_breakdown = transactions.filter(
+    expense_breakdown = transactions.filter(
         transaction_type='expense'
     ).values('expense_category').annotate(
         total=Sum('amount')
     ).order_by('-total')
-    
-    # Calculate percentages
-    expense_breakdown = []
-    for expense in raw_expense_breakdown:
-        percentage = 0
-        if expenses_total > 0:
-            percentage = (expense['total'] / expenses_total) * 100
-            
-        expense_breakdown.append({
-            'expense_category': expense['expense_category'],
-            'total': expense['total'],
-            'percentage': round(percentage, 1)
-        })
-    
-    # Calculate net income
-    net_income = income_total - expenses_total
-
 
     context = {
         'equipment_list': equipment_list,
@@ -132,8 +104,8 @@ def dashboard_view(request):
         'start_date': start_date,
         'end_date': end_date,
         'transactions': transactions,
-        'total_income': income_total,
-        'total_expenses': expenses_total,
+        'total_income': total_income,
+        'total_expenses': total_expenses,
         'net_income': net_income,
         'expense_breakdown': expense_breakdown,
     }
@@ -251,10 +223,27 @@ def add_rental(request):
     if request.method == "POST":
         form = RentalForm(request.POST)
         if form.is_valid():
-            rental = form.save(commit=False)  # Don't save yet
-            rental.end_date = form.cleaned_data['end_date']  # Set end_date
-            rental.save()  # Now save the rental instance
-            return redirect('dashboard')  # Redirect to your dashboard
+            rental = form.save(commit=False)
+            rental.end_date = form.cleaned_data['end_date']
+            
+            # Temukan equipment yang disewa dan ubah posisinya menjadi 'sewa'
+            equipment = rental.equipment
+            equipment.position = 'Disewa'
+            equipment.customer = rental.customer
+            equipment.save()
+            
+            rental.save()
+            # Buat objek FinancialTransaction untuk mencatat pendapatan rental
+            FinancialTransaction.objects.create(
+                date=rental.start_date,
+                transaction_type='income',
+                amount=rental.total_price,
+                description=f"Rental payment for {equipment} by {rental.customer}",
+                rental=rental,
+                customer=rental.customer,
+                equipment=equipment
+            )
+            return redirect('dashboard')
     else:
         form = RentalForm()
     return render(request, 'inventory/add_rental.html', {'form': form})

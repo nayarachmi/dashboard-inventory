@@ -176,8 +176,6 @@ class RentalPayment(models.Model):
     def __str__(self):
         return f"Payment of {self.amount_paid} for {self.rental} on {self.payment_date}"
     
-    # inventory/models.py
-from django.db import models
 
 class Transaction(models.Model):
     TRANSACTION_TYPES = [
