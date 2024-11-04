@@ -46,7 +46,16 @@ class Equipment(models.Model):
     def __str__(self):
         return f"{self.brand} - {self.inventory_code}"
     
-    from django.db import models
+    def is_available(self):
+        return self.position == 'available'
+
+    def is_currently_rented(self):
+        current_date = timezone.now().date()
+        return Rental.objects.filter(
+            equipment=self,
+            start_date__lte=current_date,
+            end_date__gte=current_date
+        ).exists()
 
 from django.db import models
 
@@ -267,3 +276,5 @@ class Transaction(models.Model):
 
     def __str__(self):
         return f"{self.get_transaction_type_display()} - {self.description} - Rp{self.amount}"
+    
+

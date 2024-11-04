@@ -1,5 +1,7 @@
 from datetime import date, datetime, timezone
 from django.shortcuts import get_object_or_404, render, redirect
+
+from inventory.decorators import admin_required, owner_required
 from .models import Equipment, ExpenseCategory, Owner, Customer, Rental, Transaction
 from .forms import EquipmentForm, OwnerForm, CustomerForm, RentalForm
 from django.utils import timezone
@@ -11,6 +13,7 @@ from datetime import timedelta
 from django.db.models import Q
 from django.utils import timezone
 from datetime import timedelta
+
 
 def dashboard_view(request):
     # Inisialisasi queryset dasar
@@ -113,6 +116,7 @@ def dashboard_view(request):
     return render(request, 'inventory/dashboard.html', context)
 
 # View for adding new equipment
+@owner_required
 def add_equipment_view(request):
     if request.method == 'POST':
         form = EquipmentForm(request.POST)
@@ -134,6 +138,7 @@ def add_owner_view(request):
         form = OwnerForm()
     return render(request, 'inventory/add_owner.html', {'form': form})
 
+@admin_required
 def add_customer_view(request):
     if request.method == 'POST':
         form = CustomerForm(request.POST, request.FILES)
@@ -213,27 +218,34 @@ def add_view(request, form_class, template_name, redirect_url):
 def add_equipment_view(request):
     return add_view(request, EquipmentForm, 'inventory/add_equipment.html', 'dashboard')
 
+@admin_required
 def add_customer_view(request):
     return add_view(request, CustomerForm, 'inventory/add_customer.html', 'dashboard')
 
 def add_owner_view(request):
     return add_view(request, OwnerForm, 'inventory/add_owner.html', 'dashboard')
 
+@admin_required
 def add_rental(request):
     if request.method == "POST":
         form = RentalForm(request.POST)
         if form.is_valid():
             rental = form.save(commit=False)
-            rental.end_date = form.cleaned_data['end_date']
-            
-            # Temukan equipment yang disewa dan ubah posisinya menjadi 'sewa'
             equipment = rental.equipment
-            equipment.position = 'Disewa'
+            
+            # Double check availability
+            if not equipment.is_available():
+                messages.error(request, f"Equipment {equipment.inventory_code} tidak tersedia untuk disewa")
+                return render(request, 'inventory/add_rental.html', {'form': form})
+            
+            # Update equipment status
+            equipment.position = 'rented'
             equipment.customer = rental.customer
             equipment.save()
             
             rental.save()
-            # Buat objek FinancialTransaction untuk mencatat pendapatan rental
+            
+            # Buat transaksi finansial
             FinancialTransaction.objects.create(
                 date=rental.start_date,
                 transaction_type='income',
@@ -243,14 +255,31 @@ def add_rental(request):
                 customer=rental.customer,
                 equipment=equipment
             )
+            
+            messages.success(request, "Rental berhasil ditambahkan")
             return redirect('dashboard')
     else:
         form = RentalForm()
-    return render(request, 'inventory/add_rental.html', {'form': form})
+    
+    return render(request, 'inventory/add_rental.html', {
+        'form': form,
+        'available_equipment': Equipment.objects.filter(position='available')
+    })
 
 def rental_detail(request, rental_id):
-    rental = get_object_or_404(Rental, id=rental_id)
-    return render(request, 'inventory/rental_detail.html', {'rental': rental})
+    rental = get_object_or_404(Rental.objects.select_related(
+        'customer',
+        'equipment'
+    ).prefetch_related(
+        'financial_transactions',
+        'payments'
+    ), id=rental_id)
+    
+    context = {
+        'rental': rental,
+        'financial_transactions': rental.financial_transactions.all().order_by('-date'),
+    }
+    return render(request, 'inventory/rental_detail.html', context)
 
 
 def edit_rental(request, id):

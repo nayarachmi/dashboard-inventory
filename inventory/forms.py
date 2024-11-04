@@ -13,7 +13,7 @@ class EquipmentForm(forms.ModelForm):
             'id': self.id,
             'monthly_rental_price': 
             
-float(self.monthly_rental_price)
+            float(self.monthly_rental_price)
         }
 
 class OwnerForm(forms.ModelForm):
@@ -111,5 +111,3 @@ class RentalPaymentForm(forms.ModelForm):
             )
         
         return cleaned_data
-    
-
