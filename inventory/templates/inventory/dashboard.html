@@ -443,7 +443,7 @@ h4 {
                     <th>Shipping Address</th>
                     <th>Maps Link</th>
                     <th>Transfer Receipt</th>
-                    <th>KTP Photo</th>
+                    <th>KTP</th>
                     <th>Actions</th>
                     <th>Details</th>
                 </tr>
@@ -465,15 +465,16 @@ h4 {
                                 N/A
                             {% endif %}
                         </td>
-                        <td>{% if customer.ktp_photo %}
-                            <a href="{{ customer.ktp_photo.url }}" target="_blank">
-                                <img src="{{ customer.ktp_photo.url }}" 
-                                     alt="KTP {{ customer.name }}" 
-                                     style="max-width: 100px; height: auto;">
-                            </a>
-                        {% else %}
-                            No KTP Photo
-                        {% endif %} 
+                        <td>
+                            {% if customer.ktp_photo %}
+                                <a href="{{ customer.ktp_photo.url }}" target="_blank">
+                                    <img src="{{ customer.ktp_photo.url }}" 
+                                         alt="KTP {{ customer.name }}" 
+                                         style="max-width: 100px; height: auto;">
+                                </a>
+                            {% else %}
+                                No KTP Photo
+                            {% endif %}
                         </td>
                         <td class="action-links">
                             <a href="{% url 'edit_customer' customer.id %}">Edit</a>
@@ -563,6 +564,7 @@ h4 {
                     <th>Duration (Months)</th>
                     <th>Total Price</th>
                     <th>Actions</th>
+                    <th>Details</th>
                 </tr>
             </thead>
             <tbody>
@@ -579,6 +581,7 @@ h4 {
                             <a href="{% url 'edit_rental' rental.id %}">Edit</a>
                             <a href="{% url 'delete_rental' rental.id %}" class="delete">Delete</a>
                         </td>
+                        <td><a href="{% url 'rental_detail' rental.id %}">View Details</a></td>
                     </tr>
                 
             </tr>
@@ -604,6 +607,7 @@ h4 {
                 <th>Duration (Months)</th>
                 <th>Total Price</th>
                 <th>Actions</th>
+                <th>Details</th>
             </tr>
         </thead>
         <tbody>
@@ -620,6 +624,7 @@ h4 {
                         <a href="{% url 'edit_rental' rental.id %}">Edit</a>
                         <a href="{% url 'delete_rental' rental.id %}" class="delete">Delete</a>
                     </td>
+                    <td><a href="{% url 'rental_detail' rental.id %}">View Details</a></td>
                 </tr> 
         </tr>
     {% empty %}
@@ -644,6 +649,7 @@ h4 {
                 <th>Duration (Months)</th>
                 <th>Total Price</th>
                 <th>Actions</th>
+                <th>Details</th>
             </tr>
         </thead>
         <tbody>
@@ -660,6 +666,7 @@ h4 {
                         <a href="{% url 'edit_rental' rental.id %}">Edit</a>
                         <a href="{% url 'delete_rental' rental.id %}" class="delete">Delete</a>
                     </td>
+                    <td><a href="{% url 'rental_detail' rental.id %}">View Details</a></td>
                 </tr>
             
         </tr>

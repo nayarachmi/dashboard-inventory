@@ -1,6 +1,144 @@
-<h1>Rental Detail</h1>
-<p>Customer: {{ rental.customer.name }}</p>
-<p>Equipment: {{ rental.equipment.name }}</p>
-<p>Duration: {{ rental.rental_duration }} months</p>
-<p>Total Price: {{ rental.total_price }}</p>
-<p>Rental Date: {{ rental.rental_date }}</p>
+<!-- inventory/templates/inventory/rental_detail.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rental Detail</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f9f9f9;
+            margin: 0;
+            padding: 20px;
+        }
+        h1 {
+            color: #333;
+        }
+        .rental-info, .customer-info, .equipment-info, .payment-info {
+            background-color: #fff;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        th, td {
+            border: 1px solid #ccc;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        a {
+            text-decoration: none;
+            color: #007BFF;
+            font-weight: bold;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 3px;
+            font-size: 14px;
+            font-weight: bold;
+        }
+        .active {
+            background-color: #28a745;
+            color: white;
+        }
+        .completed {
+            background-color: #6c757d;
+            color: white;
+        }
+        .navigation {
+            margin-top: 20px;
+        }
+        .navigation a {
+            margin-right: 15px;
+        }
+
+        .clickable-link {
+            color: #007BFF;
+            cursor: pointer;
+        }
+        .clickable-link:hover {
+            text-decoration: underline;
+        }
+
+    </style>
+
+</head>
+<body>
+    <h1>Rental Detail #{{ rental.id }}</h1>
+
+    <div class="rental-info">
+        <h2>Rental Information</h2>
+        <p><strong>Start Date:</strong> {{ rental.start_date }}</p>
+        <p><strong>End Date:</strong> {{ rental.end_date }}</p>
+        <p><strong>Rental Duration:</strong> {{ rental.rental_duration }} months</p>
+        <p><strong>Total Price:</strong> Rp {{ rental.total_price }}</p>
+        <p><strong>Status:</strong> 
+            <span class="status-badge {% if rental.is_active %}active{% else %}completed{% endif %}">
+                {% if rental.is_active %}Active{% else %}Completed{% endif %}
+            </span>
+        </p>
+    </div>
+
+    <div class="customer-info">
+        <h2>Customer Information <a href="{% url 'customer_detail' rental.customer.id %}">(View Full Profile)</a></h2>
+        <p><strong>Name:</strong> <a href="{% url 'customer_detail' rental.customer.id %}" class="clickable-link">{{ rental.customer.name }}</a></p>
+        <p><strong>Email:</strong> {{ rental.customer.email }}</p>
+        <p><strong>Phone Number:</strong> {{ rental.customer.phone_number }}</p>
+        <p><strong>Whatsapp Number:</strong> {{ rental.customer.whatsapp_number }}</p>
+        <p><strong>Shipping Address:</strong> {{ rental.customer.shipping_address }}</p>
+    </div>
+
+    <div class="equipment-info">
+        <h2>Equipment Information <a href="{% url 'equipment_detail' rental.equipment.id %}">(View Full Details)</a></h2>
+        <p><strong>Inventory Code:</strong> <a href="{% url 'equipment_detail' rental.equipment.id %}" class="clickable-link">{{ rental.equipment.inventory_code }}</a></p>
+        <p><strong>Brand:</strong> {{ rental.equipment.brand }}</p>
+        <p><strong>Type:</strong> {{ rental.equipment.type }}</p>
+        {% if rental.equipment.serial_number %}
+            <p><strong>Serial Number:</strong> {{ rental.equipment.serial_number }}</p>
+        {% endif %}
+    </div>
+
+    <div class="payment-info">
+        <h2>Payment Information</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Payment Date</th>
+                    <th>Amount</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for payment in rental.payments.all %}
+                    <tr>
+                        <td>{{ payment.payment_date }}</td>
+                        <td>Rp {{ payment.amount }}</td>
+                        <td>{{ payment.get_status_display }}</td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="3" style="text-align: center;">No payment records available.</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="navigation">
+        <a href="{% url 'inventory_dashboard' %}">Back to Dashboard</a>
+    </div>
+</body>
+</html>
