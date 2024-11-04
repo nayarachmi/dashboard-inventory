@@ -224,16 +224,19 @@ def add_rental(request):
         form = RentalForm(request.POST)
         if form.is_valid():
             rental = form.save(commit=False)
-            rental.end_date = form.cleaned_data['end_date']
             
-            # Temukan equipment yang disewa dan ubah posisinya menjadi 'sewa'
+            # Calculate end date
+            rental.end_date = rental.start_date + timedelta(days=30 * rental.rental_duration)
+            
+            # Update equipment status
             equipment = rental.equipment
-            equipment.position = 'Disewa'
+            equipment.position = 'rented'
             equipment.customer = rental.customer
             equipment.save()
             
             rental.save()
-            # Buat objek FinancialTransaction untuk mencatat pendapatan rental
+            
+            # Create financial transaction for the rental
             FinancialTransaction.objects.create(
                 date=rental.start_date,
                 transaction_type='income',
@@ -243,9 +246,23 @@ def add_rental(request):
                 customer=rental.customer,
                 equipment=equipment
             )
+            
+            # Create financial transaction for deposit
+            if rental.deposit_amount > 0:
+                FinancialTransaction.objects.create(
+                    date=rental.start_date,
+                    transaction_type='income',
+                    amount=rental.deposit_amount,
+                    description=f"Deposit for {equipment} rental by {rental.customer} (refundable)",
+                    rental=rental,
+                    customer=rental.customer,
+                    equipment=equipment
+                )
+            
             return redirect('dashboard')
     else:
         form = RentalForm()
+    
     return render(request, 'inventory/add_rental.html', {'form': form})
 
 def rental_detail(request, rental_id):

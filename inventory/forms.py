@@ -7,6 +7,14 @@ class EquipmentForm(forms.ModelForm):
     class Meta:
         model = Equipment
         fields = '__all__'
+    
+    def to_json(self):
+        return {
+            'id': self.id,
+            'monthly_rental_price': 
+            
+float(self.monthly_rental_price)
+        }
 
 class OwnerForm(forms.ModelForm):
     class Meta:
@@ -16,7 +24,10 @@ class OwnerForm(forms.ModelForm):
 class CustomerForm(forms.ModelForm):
     class Meta:
         model = Customer
-        fields = '__all__'
+        fields = ['name', 'email', 'phone_number', 'whatsapp_number', 
+                 'spouse_phone_number', 'ktp_address', 'shipping_address', 
+                 'maps_link', 'transfer_receipt', 'refund_account_number', 
+                 'ktp_photo']
         widgets = {
             'rental_history': forms.Textarea(attrs={'rows': 3}),
         }
@@ -28,7 +39,11 @@ class CustomerForm(forms.ModelForm):
 class RentalForm(forms.ModelForm):
     class Meta:
         model = Rental
-        fields = ['equipment', 'customer', 'start_date', 'rental_duration']  # Exclude end_date from fields
+        fields = ['equipment', 'customer', 'rental_duration', 'start_date', 
+                 'promo_discount', 'shipping_cost', 'deposit_amount']
+        widgets = {
+            'start_date': forms.DateInput(attrs={'type': 'date'}),
+        }
 
     def clean(self):
         cleaned_data = super().clean()
@@ -96,3 +111,5 @@ class RentalPaymentForm(forms.ModelForm):
             )
         
         return cleaned_data
+    
+

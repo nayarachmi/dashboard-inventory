@@ -443,6 +443,7 @@ h4 {
                     <th>Shipping Address</th>
                     <th>Maps Link</th>
                     <th>Transfer Receipt</th>
+                    <th>KTP Photo</th>
                     <th>Actions</th>
                     <th>Details</th>
                 </tr>
@@ -463,6 +464,16 @@ h4 {
                             {% else %}
                                 N/A
                             {% endif %}
+                        </td>
+                        <td>{% if customer.ktp_photo %}
+                            <a href="{{ customer.ktp_photo.url }}" target="_blank">
+                                <img src="{{ customer.ktp_photo.url }}" 
+                                     alt="KTP {{ customer.name }}" 
+                                     style="max-width: 100px; height: auto;">
+                            </a>
+                        {% else %}
+                            No KTP Photo
+                        {% endif %} 
                         </td>
                         <td class="action-links">
                             <a href="{% url 'edit_customer' customer.id %}">Edit</a>

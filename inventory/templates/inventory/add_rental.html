@@ -55,15 +55,119 @@
         .cancel-link:hover {
             text-decoration: underline;
         }
+
+        .price-calculation {
+            background-color: #f8f9fa;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 5px;
+        }
+        
+        .price-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 5px 0;
+        }
+        
+        .total-price {
+            font-weight: bold;
+            font-size: 1.2em;
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid #ddd;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        .help-text {
+            font-size: 0.9em;
+            color: #666;
+            margin-top: 3px;
+        }
     </style>
-</head>
+head>
 <body>
     <h1>Add Rental</h1>
-    <form method="POST">
+    <form method="POST" id="rentalForm">
         {% csrf_token %}
-        {{ form.as_p }}  <!-- This will render the form fields -->
+        
+        <div class="form-group">
+            <label for="{{ form.equipment.id_for_label }}">Equipment:</label>
+            {{ form.equipment }}
+        </div>
+        
+        <div class="form-group">
+            <label for="{{ form.customer.id_for_label }}">Customer:</label>
+            {{ form.customer }}
+        </div>
+        
+       
+            <label for="{{ form.rental_duration.id_for_label }}">Rental Duration (months):</label>
+            {{ form.rental_duration }}
+        </div>
+        
+        <div class="form-group">
+            <label for="{{ form.start_date.id_for_label }}">Start Date:</label>
+            {{ form.start_date }}
+        </div>
+        
+        <div class="form-group">
+            <label for="{{ form.promo_discount.id_for_label }}">Promo Discount:</label>
+            {{ form.promo_discount }}
+        
+        <div class="form-group">
+            <label for="{{ form.shipping_cost.id_for_label }}">Shipping Cost:</label>
+            {{ form.shipping_cost }}
+        </div>
+        
+        <div class="form-group">
+            <label for="{{ form.deposit_amount.id_for_label }}">Deposit Amount:</label>
+            {{ form.deposit_amount }}        
+        
+        
         <button type="submit">Add Rental</button>
-    </form>
-    <a class="cancel-link" href="{% url 'dashboard' %}">Cancel</a>
-</body>
+    <a class="cancel-link" href="{% url 'dashboard' %}">Back To Dashboard</a>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.getElementById('rentalForm');
+            const equipmentSelect = document.getElementById('id_equipment');
+            const durationInput = document.getElementById('id_rental_duration');
+            const promoInput = document.getElementById('id_promo_discount');
+            const shippingInput = document.getElementById('id_shipping_cost');
+            const depositInput = document.getElementById('id_deposit_amount');
+
+            function updatePriceCalculation() {
+                const selectedEquipment = equipmentSelect.options[equipmentSelect.selectedIndex];
+                const monthlyPrice = selectedEquipment.dataset.price || 0;
+                const duration = durationInput.value || 0;
+                const promoDiscount = promoInput.value || 0;
+                const shippingCost = shippingInput.value || 0;
+                const depositAmount = depositInput.value || 0;
+
+                const basePrice = monthlyPrice * duration;
+                const totalPrice = basePrice - promoDiscount + Number(shippingCost);
+                const finalTotal = totalPrice + Number(depositAmount);
+
+                document.getElementById('basePrice').textContent = `Rp ${basePrice.toLocaleString()}`;
+                document.getElementById('promoAmount').textContent = `- Rp ${promoDiscount.toLocaleString()}`;
+                document.getElementById('shippingAmount').textContent = `Rp ${shippingCost.toLocaleString()}`;
+                document.getElementById('depositAmount').textContent = `Rp ${depositAmount.toLocaleString()}`;
+                document.getElementById('totalPrice').textContent = `Rp ${finalTotal.toLocaleString()}`;
+            }
+
+            // Add event listeners
+            equipmentSelect.addEventListener('change', updatePriceCalculation);
+            durationInput.addEventListener('input', updatePriceCalculation);
+            promoInput.addEventListener('input', updatePriceCalculation);
+            shippingInput.addEventListener('input', updatePriceCalculation);
+            depositInput.addEventListener('input', updatePriceCalculation);
+
+            // Initial calculation
+            updatePriceCalculation();
+        });
+    </script>
+>
 </html>

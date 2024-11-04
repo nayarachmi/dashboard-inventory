@@ -21,6 +21,7 @@ class Customer(models.Model):
     maps_link = models.URLField(default='https://example.com')
     transfer_receipt = models.FileField(upload_to='receipts/', validators=[FileExtensionValidator(allowed_extensions=['pdf', 'jpg', 'jpeg', 'png'])])
     refund_account_number = models.CharField(max_length=50, null=True, blank=True)
+    ktp_photo = models.ImageField(upload_to='ktp_photos/', null=True, blank=True)
 
     def __str__(self):
         return self.name
@@ -55,13 +56,21 @@ class Rental(models.Model):
     rental_duration = models.IntegerField()  # Dalam bulan
     total_price = models.DecimalField(max_digits=10, decimal_places=2)
     rental_date = models.DateField(auto_now_add=True)
-    start_date = models.DateField(default = timezone.now)  # Tanggal mulai sewa
-    end_date = models.DateField(default = timezone.now)    # Tanggal selesai sewa
-
+    start_date = models.DateField(default=timezone.now)
+    end_date = models.DateField(default=timezone.now)
+    
+    # Tambahan field baru
+    promo_discount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    shipping_cost = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    deposit_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    deposit_returned = models.BooleanField(default=False)
+    
     def save(self, *args, **kwargs):
-        # Menghitung total_price
-        self.total_price = self.equipment.monthly_rental_price * self.rental_duration
+        # Menghitung total_price dengan mempertimbangkan promo
+        base_price = self.equipment.monthly_rental_price * self.rental_duration
+        self.total_price = base_price - self.promo_discount + self.shipping_cost
         super().save(*args, **kwargs)
+
 
 
 from django.db import models
