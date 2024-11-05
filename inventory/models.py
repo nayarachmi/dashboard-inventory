@@ -73,12 +73,37 @@ class Rental(models.Model):
     shipping_cost = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     deposit_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     deposit_returned = models.BooleanField(default=False)
-    
+
+    def check_and_update_status(self):
+        current_date = timezone.now().date()
+        if current_date > self.end_date and self.equipment.position == 'rented':
+            self.equipment.position = 'available'
+            self.equipment.customer = None  # Reset customer
+            self.equipment.save()
+            return True
+        return False
+
     def save(self, *args, **kwargs):
         # Menghitung total_price dengan mempertimbangkan promo
         base_price = self.equipment.monthly_rental_price * self.rental_duration
         self.total_price = base_price - self.promo_discount + self.shipping_cost
+        
+        # Update end_date berdasarkan start_date dan rental_duration
+        if self.start_date:
+            self.end_date = self.start_date + timezone.timedelta(days=30*self.rental_duration)
+        
         super().save(*args, **kwargs)
+        
+        # Check dan update status setelah menyimpan
+        self.check_and_update_status()
+
+    def is_active(self):
+        current_date = timezone.now().date()
+        return self.start_date <= current_date
+
+    def is_past(self):
+        current_date = timezone.now().date()
+        return self.end_date < current_date
 
 
 

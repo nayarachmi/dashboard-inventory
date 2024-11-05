@@ -95,6 +95,24 @@ def dashboard_view(request):
         total=Sum('amount')
     ).order_by('-total')
 
+    current_date = timezone.now().date()
+    expired_rentals = Rental.objects.filter(
+        end_date__lt=current_date,
+        equipment__position='rented'
+    )
+    
+    for rental in expired_rentals:
+        rental.check_and_update_status()
+
+    active_rentals = Rental.objects.filter(
+        start_date__lte=current_date,
+        end_date__gte=current_date
+    ).select_related('customer', 'equipment')
+    
+    past_rentals = Rental.objects.filter(
+        end_date__lt=current_date
+    ).select_related('customer', 'equipment')
+
     context = {
         'equipment_list': equipment_list,
         'customer_list': customer_list,
@@ -111,6 +129,8 @@ def dashboard_view(request):
         'total_expenses': total_expenses,
         'net_income': net_income,
         'expense_breakdown': expense_breakdown,
+        'active_rentals': active_rentals,
+        'past_rentals': past_rentals,
     }
 
     return render(request, 'inventory/dashboard.html', context)

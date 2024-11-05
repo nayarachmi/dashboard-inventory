@@ -374,6 +374,22 @@ h4 {
     color: #444;
     margin-bottom: 15px;
 }
+
+.status-badge {
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 12px;
+        font-weight: bold;
+    }
+
+    .status-badge.active {
+        background-color: #d4edda;
+        color: #155724;
+    }
+
+    .status-badge.past {
+        background-color: #f8d7da;
+        color: #721c24;
 </style>
 
     
@@ -531,6 +547,90 @@ h4 {
                 {% endfor %}
             </tbody>
         </table>
+
+        <!-- Active Rentals -->
+<h2>Active Rentals</h2>
+<table>
+    <thead>
+        <tr>
+            <th>No</th>
+            <th>Rental ID</th>
+            <th>Customer</th>
+            <th>Equipment</th>
+            <th>Start Date</th>
+            <th>End Date</th>
+            <th>Rental Duration (Months)</th>
+            <th>Total Price</th>
+            <th>Status</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for rental in active_rentals %}
+            <tr>
+                <td>{{ forloop.counter }}</td>
+                <td>{{ rental.id }}</td>
+                <td>{{ rental.customer.name }}</td>
+                <td>{{ rental.equipment.inventory_code }}</td>
+                <td>{{ rental.start_date }}</td>
+                <td>{{ rental.end_date }}</td>
+                <td>{{ rental.rental_duration }}</td>
+                <td>{{ rental.total_price }}</td>
+                <td><span class="status-badge active">Active</span></td>
+                <td class="action-links">
+                    <a href="{% url 'edit_rental' rental.id %}">Edit</a>
+                    <a href="{% url 'delete_rental' rental.id %}" class="delete">Delete</a>
+                    <a href="{% url 'rental_detail' rental.id %}">Details</a>
+                </td>
+            </tr>
+        {% empty %}
+            <tr>
+                <td colspan="10" class="empty-message">No active rentals.</td>
+            </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<!-- Past Rentals -->
+<h2>Past Rentals</h2>
+<table>
+    <thead>
+        <tr>
+            <th>No</th>
+            <th>Rental ID</th>
+            <th>Customer</th>
+            <th>Equipment</th>
+            <th>Start Date</th>
+            <th>End Date</th>
+            <th>Rental Duration (Months)</th>
+            <th>Total Price</th>
+            <th>Status</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for rental in past_rentals %}
+            <tr>
+                <td>{{ forloop.counter }}</td>
+                <td>{{ rental.id }}</td>
+                <td>{{ rental.customer.name }}</td>
+                <td>{{ rental.equipment.inventory_code }}</td>
+                <td>{{ rental.start_date }}</td>
+                <td>{{ rental.end_date }}</td>
+                <td>{{ rental.rental_duration }}</td>
+                <td>{{ rental.total_price }}</td>
+                <td><span class="status-badge past">Past</span></td>
+                <td class="action-links">
+                    <a href="{% url 'rental_detail' rental.id %}">Details</a>
+                </td>
+            </tr>
+        {% empty %}
+            <tr>
+                <td colspan="10" class="empty-message">No past rentals.</td>
+            </tr>
+        {% endfor %}
+    </tbody>
+</table>
 
         <!-- New Rental Alerts Section -->
         <div class="rental-alerts">

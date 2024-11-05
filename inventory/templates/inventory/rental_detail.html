@@ -132,7 +132,7 @@
         <p><strong>Total Price:</strong> Rp {{ rental.total_price }}</p>
         <p><strong>Status:</strong> 
             <span class="status-badge {% if rental.is_active %}active{% else %}completed{% endif %}">
-                {% if rental.is_active %}Active{% else %}Completed{% endif %}
+                {% if rental in active_rentals %}Active{% else %}Completed{% endif %}
             </span>
         </p>
     </div>

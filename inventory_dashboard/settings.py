@@ -40,6 +40,11 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'inventory',
     'inventory_dashboard',
+    'django_crontab',
+]
+
+CRONJOBS = [
+    ('0 0 * * *', 'django.core.management.call_command', ['update_rental_status']),
 ]
 
 MIDDLEWARE = [
